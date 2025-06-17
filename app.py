@@ -11,7 +11,7 @@ import secrets
 load_dotenv()
 
 app = Flask(__name__ , static_folder='static')
-app.secret_key = 'bc7b718fc7dae392bab0aa07bc2d689edf44515b2decca751d3010cab997bdd8'  # Secret key for session management
+app.secret_key = os.getenv('secret_key')  # Secret key for session management
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = False
 Session(app)
