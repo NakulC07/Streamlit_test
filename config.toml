@@ -1,0 +1,6 @@
+[server]
+enableCORS = false
+sslKeyFile = "key.pem"
+sslCertFile = "cert.crt"
+port = 8507
+address = "0.0.0.0"

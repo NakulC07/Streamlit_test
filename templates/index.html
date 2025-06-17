@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask App with MSAL and Kerberos</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <h1>Flask App with MSAL and Kerberos Authentication</h1>
+
+    <input type="hidden" id="logged-in-flag" value="{{ 'true' if logged_in else 'false' }}">
+
+    <div id="auth-section">
+        <button id="login-btn">Login with Azure AD</button>
+    </div>
+
+    <div id="kerberos-section">
+        <button id="kerberos-auth-btn">Authenticate with Kerberos</button>
+        <pre id="resource-data" style="background-color: #f4f4f4; padding: 10px;"></pre>
+    </div>
+    <div id="user-info">
+        <p>Logged In: {{ 'Yes' if logged_in else 'No' }}</p>
+        <p>Kerberos Authenticated: {{ 'Yes' if kerberos_authenticated else 'No' }}</p>
+        <p>Kerberos User: {{ kerberos_user if kerberos_user else 'N/A' }}</p>
+    </div>
+
+    <script src="/static/js/scripts.js"></script>
+</body>
+</html>
