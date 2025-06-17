@@ -1,4 +1,4 @@
 .env
 flask_session/
-key.pem
 cert.crt
+key.pem
