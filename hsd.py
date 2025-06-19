@@ -11,7 +11,11 @@ import json
 requests.packages.urllib3.disable_warnings()
 
 class HsdConnector:
+    def __init__(self, kerberos_user=None):
+        self.kerberos_user = kerberos_user
+
     def _get_response(self, req, headers):
+        # Optionally log or use self.kerberos_user for auditing or custom headers
         response = requests.get(req, auth=HTTPKerberosAuth(), verify=False, headers=headers)
         if response.ok:
             try:
@@ -34,6 +38,9 @@ class HsdConnector:
                 if fields is not None:
                     req += "?fields=" + "%2C%20".join(fields)
                 headers = {'Content-type': 'application/json'}
+                # Optionally add kerberos_user to headers for tracking
+                if self.kerberos_user:
+                    headers['X-Kerberos-User'] = self.kerberos_user
                 response_data = self._get_response(req, headers)
                 if "data" in response_data:
                     return response_data["data"][0]
@@ -43,9 +50,12 @@ class HsdConnector:
                 retry -= 1
             except Exception as e:
                 retry -= 1
-    def get_user_private_queries(self, user_idsid):
+
+    def get_user_private_queries(self, user_idsid=None):
         url = "https://hsdes-api.intel.com/rest/query/MetaData"
         headers = {'Content-type': 'application/json'}
+        if user_idsid is None:
+            user_idsid = self.kerberos_user
         params = {
             "owner": user_idsid,  # Filter by the owner's idsid
             "category": "private"
@@ -58,12 +68,10 @@ class HsdConnector:
                     return response_data["data"]
                 else:
                     raise Exception('Could not find "data" in response...')
-            else:
-                response.raise_for_status()
         except Exception as e:
-            print(f"An error occurred while fetching private queries: {e}")
-            return None
+            raise e
 
-connector  = HsdConnector()
-queries = connector.get_user_private_queries("nakulcho")
-print(queries)
+if __name__ == "__main__":
+    connector  = HsdConnector()
+    queries = connector.get_user_private_queries()
+    print(queries)

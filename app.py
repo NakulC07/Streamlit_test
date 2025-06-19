@@ -6,6 +6,7 @@ import os
 import requests
 from flask_session import Session
 import secrets
+from hsd import HsdConnector
 
 # Load environment variables
 load_dotenv()
@@ -22,7 +23,7 @@ CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 TENANT_ID = os.getenv('TENANT_ID')
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 SCOPE = ["User.Read"]
-REDIRECT_URI = "http://localhost:5000/callback"  # Update with your Flask app's redirect URI
+REDIRECT_URI = "https://10.224.249.226:5000/callback"  # Update with your Flask app's redirect URI
 
 # Kerberos-protected resource URL
 KERBEROS_PROTECTED_URL = "https://hsdes-api.intel.com/rest/article/16027238568"
@@ -37,13 +38,18 @@ app_msal = ConfidentialClientApplication(
 @app.route('/')
 def index():
     """
-    Render the main page.
+    Render the main page. If the session is not authenticated, clear it to avoid stale data.
     """
-    print("Rendering index page. Session State:", session)  # Debugging
     user_data = session.get('user_data', {})
     logged_in = user_data.get('logged_in', False)
     kerberos_authenticated = user_data.get('kerberos_authenticated', False)
     kerberos_user = user_data.get('kerberos_user', None)
+    # If not logged in, clear session to avoid showing stale auth info
+    if not logged_in:
+        session.clear()
+        logged_in = False
+        kerberos_authenticated = False
+        kerberos_user = None
     return render_template(
         'index.html',
         logged_in=logged_in,
@@ -78,8 +84,8 @@ def callback():
                 'kerberos_authenticated': False,
                 'kerberos_user': None
             }
-            print("Access Token:", session['user_data']['access_token'])  # Debugging
-            print("Session State after login:", session)  # Debugging
+            #print("Access Token:", session['user_data']['access_token'])  # Debugging
+            #print("Session State after login:", session)  # Debugging
             return redirect('/')
     return "Login failed", 400
 
@@ -88,8 +94,8 @@ def kerberos_auth():
     """
     Authenticate the user using Kerberos and access the protected resource.
     """
-    print("Kerberos authentication endpoint triggered.")  # Debugging
-    print("Session State: ", session)
+    #print("Kerberos authentication endpoint triggered.")  # Debugging
+    #print("Session State: ", session)
     try:
         kerberos_user = os.getenv("USER") or os.getenv("USERNAME")
         if kerberos_user:
@@ -104,19 +110,19 @@ def kerberos_auth():
             headers = {'Content-Type': 'application/json'}
             response = requests.get(KERBEROS_PROTECTED_URL, auth=kerberos_auth, headers=headers)
 
-            print("Request Headers:", response.request.headers)  # Debugging
-            print("Response Status Code:", response.status_code)  # Debugging
-            print("Response Text:", response.text)  # Debugging
+            #print("Request Headers:", response.request.headers)  # Debugging
+            #print("Response Status Code:", response.status_code)  # Debugging
+            #print("Response Text:", response.text)  # Debugging
             
             if response.status_code == 200:
-                print("Successfully accessed the Kerberos-protected resource.")  # Debugging
+                #print("Successfully accessed the Kerberos-protected resource.")  # Debugging
                 resource_data = response.json()
                 return jsonify({
                     "message": f"Authenticated as: {kerberos_user}",
                     "resource_data": resource_data
                 }), 200
             else:
-                print(f"Failed to access the resource. Status code: {response.status_code}")  # Debugging
+                #print(f"Failed to access the resource. Status code: {response.status_code}")  # Debugging
                 return jsonify({
                     "message": f"Authenticated as: {kerberos_user}",
                     "error": f"Failed to access the resource. Status code: {response.status_code}"
@@ -124,7 +130,7 @@ def kerberos_auth():
         else:
             return jsonify({"message": "Could not determine the authenticated Kerberos user."}), 400
     except Exception as e:
-        print("Kerberos Authentication Error:", str(e))  # Debugging
+        #print("Kerberos Authentication Error:", str(e))  # Debugging
         return jsonify({"message": f"Kerberos authentication failed: {str(e)}"}), 500
 
 @app.route('/access-resource', methods=['POST'])
@@ -150,5 +156,31 @@ def access_resource():
     except Exception as e:
         return jsonify({"message": f"An error occurred while accessing the resource: {str(e)}"}), 500    
 
+@app.route('/hsd-data', methods=['GET'])
+def hsd_data():
+    """
+    Endpoint to extract HSD data using the current Kerberos user from the session.
+    """
+    user_data = session.get('user_data')
+    if not user_data or not user_data.get('kerberos_authenticated'):
+        return jsonify({'error': 'Kerberos authentication required.'}), 401
+    kerberos_user = user_data.get('kerberos_user')
+    hsd_id = request.args.get('hsd_id', '16027238568')  # Default/test HSD ID
+    fields = request.args.getlist('fields') or None
+    connector = HsdConnector(kerberos_user=kerberos_user)
+    try:
+        data = connector.get_hsd(hsd_id, fields)
+        return jsonify({'data': data}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/logout')
+def logout():
+    """
+    Clear the session and redirect to the home page.
+    """
+    session.clear()
+    return redirect('/')
+
 if __name__ == '__main__':
-    app.run(host = "0.0.0.0", port = 5000, debug=True)
+    app.run(host = "0.0.0.0", port = 5000, debug=True, ssl_context = ('cert.crt', 'key.pem'))

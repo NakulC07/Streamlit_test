@@ -3,16 +3,8 @@ document.getElementById('login-btn').addEventListener('click', () => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Check if the user is logged in (this can be passed from the backend as a flag)
-    const isLoggedIn = document.getElementById('logged-in-flag').value === 'true';
-
-    if (isLoggedIn) {
-        // Automatically trigger Kerberos authentication
-        const response = await fetch('/kerberos-auth', { method: 'POST' });
-        const data = await response.json();
-        console.log("Kerberos Authentication Response:", data); // Debugging
-        alert(data.message); // Show the Kerberos authentication result
-    }
+    // Do NOT trigger any authentication automatically on page load
+    // User must click buttons to authenticate
 });
 
 document.getElementById('kerberos-auth-btn').addEventListener('click', async () => {
