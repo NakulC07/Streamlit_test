@@ -38,18 +38,12 @@ app_msal = ConfidentialClientApplication(
 @app.route('/')
 def index():
     """
-    Render the main page. If the session is not authenticated, clear it to avoid stale data.
+    Render the main page. Show session state if present.
     """
     user_data = session.get('user_data', {})
     logged_in = user_data.get('logged_in', False)
     kerberos_authenticated = user_data.get('kerberos_authenticated', False)
     kerberos_user = user_data.get('kerberos_user', None)
-    # If not logged in, clear session to avoid showing stale auth info
-    if not logged_in:
-        session.clear()
-        logged_in = False
-        kerberos_authenticated = False
-        kerberos_user = None
     return render_template(
         'index.html',
         logged_in=logged_in,
