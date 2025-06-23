@@ -17,6 +17,9 @@
     </div>
 
     <div id="kerberos-section">
+        {% if logged_in and not kerberos_authenticated %}
+            <script>window.location.href = '/kerberos-alias';</script>
+        {% endif %}
         <button id="kerberos-auth-btn">Authenticate with Kerberos</button>
         <pre id="resource-data" style="background-color: #f4f4f4; padding: 10px;"></pre>
     </div>
