@@ -2,3 +2,4 @@
 flask_session/
 cert.crt
 key.pem
+kerberos_alias_map.json
